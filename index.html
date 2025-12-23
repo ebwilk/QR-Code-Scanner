@@ -3,9 +3,10 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-<title>Ford Digital ID</title>
+<title>Ford Equipment Scanner</title>
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
 <style>
-    /* --- CONFIG --- */
     :root {
         --ford-blue: #003478;
         --bg-gray: #f4f5f8;
@@ -13,131 +14,164 @@
     }
 
     body {
-        font-family: "Ford Antenna", -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+        font-family: "Ford Antenna", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         background: var(--bg-gray);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 80vh;
-        margin: 0;
-        padding: 20px;
-    }
-
-    /* --- THE FLIP MECHANISM (CSS ONLY) --- */
-    /* 1. Hide the actual checkbox */
-    #card-toggle { display: none; }
-
-    /* 2. The Card Container */
-    .scene {
-        width: 100%;
-        max-width: 340px;
-        height: 220px;
-        perspective: 1000px; /* Gives it 3D depth */
-    }
-
-    .card {
-        width: 100%;
-        height: 100%;
-        position: relative;
-        transition: transform 0.6s;
-        transform-style: preserve-3d;
-        cursor: pointer;
-        box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-        border-radius: 12px;
-    }
-
-    /* 3. Rotate card when checkbox is checked */
-    #card-toggle:checked + .scene .card {
-        transform: rotateY(180deg);
-    }
-
-    /* 4. Common Face Styles */
-    .card-face {
-        position: absolute;
-        width: 100%;
-        height: 100%;
-        -webkit-backface-visibility: hidden; /* Safari */
-        backface-visibility: hidden;
-        border-radius: 12px;
-        background: white;
-        overflow: hidden;
-    }
-
-    /* --- FRONT FACE (ID) --- */
-    .card-front {
-        display: flex;
-        align-items: center;
-        padding: 0 25px;
-        box-sizing: border-box;
-    }
-
-    .blue-stripe {
-        position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: var(--ford-blue);
-    }
-
-    .avatar {
-        width: 70px; height: 70px;
-        border-radius: 50%;
-        background: var(--ford-blue);
-        color: white;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 24px; font-weight: 700;
-        border: 3px solid white;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-        margin-right: 20px;
-    }
-
-    .info h2 { margin: 0; font-size: 20px; color: var(--text-dark); font-weight: 800; }
-    .info p { margin: 4px 0 0 0; font-size: 13px; color: #666; font-weight: 500; }
-
-    .tap-hint {
-        position: absolute; bottom: 0; left: 0; width: 100%;
-        text-align: center; padding: 10px;
-        background: #f9f9f9;
-        font-size: 11px; color: #888;
-        font-weight: 600; text-transform: uppercase; letter-spacing: 1px;
-        border-top: 1px solid #eee;
-    }
-
-    /* --- BACK FACE (QR) --- */
-    .card-back {
-        transform: rotateY(180deg); /* Start rotated away */
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: center;
+        padding: 20px;
+        margin: 0;
+        min-height: 100vh;
     }
 
-    .qr-image { width: 140px; height: 140px; mix-blend-mode: multiply; }
-    .scan-text { margin-top: 10px; font-size: 14px; font-weight: 700; color: var(--ford-blue); }
+    /* --- WIDGET CONTAINER --- */
+    .scanner-widget {
+        background: white;
+        width: 100%;
+        max-width: 360px;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
 
+    /* --- HEADER --- */
+    .widget-header {
+        background: var(--ford-blue);
+        color: white;
+        padding: 15px 20px;
+        font-weight: 700;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        text-align: center;
+    }
+
+    /* --- BODY --- */
+    .widget-body {
+        padding: 20px;
+        min-height: 280px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+
+    /* --- STATE 1: IDLE --- */
+    #state-idle { display: flex; flex-direction: column; align-items: center; width: 100%; text-align: center; }
+    
+    .btn-scan {
+        background: var(--ford-blue);
+        color: white;
+        border: none;
+        padding: 16px 32px;
+        border-radius: 30px;
+        font-weight: 700;
+        font-size: 16px;
+        cursor: pointer;
+        margin-top: 20px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+    }
+
+    /* --- STATE 2: CAMERA --- */
+    #state-camera { display: none; width: 100%; flex-direction: column; align-items: center; }
+    
+    #reader {
+        width: 100%;
+        height: 250px;
+        background: black;
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 15px;
+    }
+
+    /* --- STATE 3: RESULT --- */
+    #state-result { display: none; width: 100%; text-align: center; animation: slideUp 0.3s ease; }
+    
+    .result-box {
+        background: #fafafa;
+        border-left: 5px solid #2e7d32;
+        padding: 15px;
+        border-radius: 4px;
+        text-align: left;
+        margin-bottom: 20px;
+    }
+    
+    .btn-open {
+        background: #2e7d32; color: white; border: none;
+        padding: 14px; width: 100%; border-radius: 8px; font-weight: 700; cursor: pointer;
+    }
+
+    @keyframes slideUp { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 </style>
 </head>
 <body>
 
-<input type="checkbox" id="card-toggle">
+<div class="scanner-widget">
+    <div class="widget-header">Equipment Lookup</div>
 
-<div class="scene">
-    <label class="card" for="card-toggle">
+    <div class="widget-body">
         
-        <div class="card-face card-front">
-            <div class="blue-stripe"></div>
-            <div class="avatar">JD</div>
-            <div class="info">
-                <h2>John Doe</h2>
-                <p>Zone C • Team 4</p>
-                <p style="font-size:11px; color:#999; margin-top:6px;">ID: •••••8842</p>
+        <div id="state-idle">
+            <svg style="width:60px;height:60px;fill:#ccc;margin-bottom:10px;" viewBox="0 0 24 24"><path d="M3 5v4h2V5h4V3H5c-1.1 0-2 .9-2 2zm2 10H3v4c0 1.1.9 2 2 2h4v-2H5v-4zm14 4h-4v2h4c1.1 0 2-.9 2-2v-4h-2v4zm0-16h-4v2h4v4h2V5c0-1.1-.9-2-2-2z"/></svg>
+            <p style="color:#666; font-size:14px;">Scan QR sticker on machinery to view manuals.</p>
+            <button class="btn-scan" onclick="startScanner()">Open Scanner</button>
+        </div>
+
+        <div id="state-camera">
+            <div id="reader"></div>
+            <button onclick="stopScanner()" style="background:#f0f0f0; border:none; padding:10px 20px; border-radius:20px; color:#333; font-weight:600;">Cancel</button>
+        </div>
+
+        <div id="state-result">
+            <div class="result-box">
+                <div style="font-weight:700; font-size:16px; margin-bottom:5px;">Code Detected</div>
+                <div id="scan-data" style="font-family:monospace; color:#555;">...</div>
             </div>
-            <div class="tap-hint">Tap to Scan</div>
+            <button class="btn-open" onclick="reset()">Scan Another</button>
         </div>
 
-        <div class="card-face card-back">
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=FORD-EMPLOYEE-ID" class="qr-image" alt="QR">
-            <div class="scan-text">Ready to Scan</div>
-        </div>
-
-    </label>
+    </div>
 </div>
+
+<script>
+    let html5QrCode;
+
+    function startScanner() {
+        document.getElementById('state-idle').style.display = 'none';
+        document.getElementById('state-camera').style.display = 'flex';
+
+        html5QrCode = new Html5Qrcode("reader");
+        html5QrCode.start(
+            { facingMode: "environment" }, 
+            { fps: 10, qrbox: { width: 200, height: 200 } },
+            onScanSuccess
+        ).catch(err => {
+            alert("Error: Camera access denied. Check browser permissions.");
+            stopScanner();
+        });
+    }
+
+    function onScanSuccess(decodedText) {
+        html5QrCode.stop().then(() => {
+            document.getElementById('state-camera').style.display = 'none';
+            document.getElementById('state-result').style.display = 'block';
+            document.getElementById('scan-data').innerText = decodedText;
+        });
+    }
+
+    function stopScanner() {
+        if(html5QrCode) html5QrCode.stop();
+        reset();
+    }
+
+    function reset() {
+        document.getElementById('state-result').style.display = 'none';
+        document.getElementById('state-camera').style.display = 'none';
+        document.getElementById('state-idle').style.display = 'flex';
+    }
+</script>
 
 </body>
 </html>
