@@ -7,101 +7,120 @@
 <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
 <style>
-    /* --- RESET & BASICS --- */
+    /* --- RESET & FONTS --- */
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     :root { --ford-blue: #003478; --bg-gray: #f4f5f8; --success: #2e7d32; }
     
-    html, body {
-        height: 100%; /* Critical for locking */
-        margin: 0; padding: 0;
+    body {
         font-family: "Ford Antenna", -apple-system, BlinkMacSystemFont, Roboto, sans-serif; 
         background: var(--bg-gray);
-        display: flex; flex-direction: column; align-items: center;
-        overflow: hidden; /* Default lock to prevent bounce */
+        margin: 0; padding: 10px;
+        display: flex; justify-content: center;
+        min-height: 100vh;
     }
 
+    /* --- MAIN WIDGET BOX --- */
     .scanner-widget {
-        background: white; width: 100%; max-width: 360px;
-        height: 100%; max-height: 600px; /* Allow it to fill screen if needed */
-        border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        background: white; 
+        width: 100%; 
+        max-width: 400px; /* Slightly wider for better reading */
+        
+        /* THE FIX: Hard-coded minimum height prevents collapsing */
+        min-height: 600px; 
+        
+        border-radius: 12px; 
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         overflow: hidden; 
-        position: relative; /* Anchor for absolute children */
         display: flex; flex-direction: column;
-        margin-top: 20px;
+        position: relative;
     }
 
     .widget-header {
         background: var(--ford-blue); color: white; padding: 15px;
         font-weight: 700; text-transform: uppercase; text-align: center; letter-spacing: 0.5px;
-        height: 50px; flex-shrink: 0; z-index: 10;
-        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0; font-size: 16px;
     }
 
-    /* --- SCREENS (Absolute Positioning Fix) --- */
-    /* By making screens absolute, they don't push the container size */
+    /* --- SCREENS --- */
+    /* By default, hide screens. We use a simple toggle class. */
     .screen {
-        position: absolute; top: 50px; left: 0; right: 0; bottom: 0;
-        background: white;
         display: none; 
         flex-direction: column; 
-        overflow-y: auto; /* Allow individual screens to scroll if needed */
-        -webkit-overflow-scrolling: touch;
+        width: 100%;
+        height: 100%;
         padding: 20px;
+        animation: fadeIn 0.3s ease;
     }
     .screen.active { display: flex; }
 
-    /* Center alignment for non-scrolling screens */
-    #screen-idle, #screen-result, #screen-camera { align-items: center; justify-content: center; }
+    /* Center content for Idle/Result screens */
+    #screen-idle, #screen-result, #screen-camera { 
+        align-items: center; 
+        justify-content: center; 
+        flex: 1; /* Fill the 600px height */
+    }
 
-    /* --- FAKE PDF LAYOUT (The Nuclear Fix) --- */
+    /* --- PDF VIEWER (Fixed Layout) --- */
     #screen-pdf {
-        padding: 0; /* Remove padding so toolbar hits edges */
+        padding: 0; 
         background: #525659;
-        z-index: 20; /* Sit on top of everything */
-        display: none; flex-direction: column;
+        display: none; 
+        flex-direction: column;
+        height: 550px; /* Explicit height for the viewer area */
     }
     #screen-pdf.active { display: flex; }
 
     .pdf-toolbar {
-        height: 44px; background: #323639; color: white; padding: 0 15px;
+        background: #323639; color: white; padding: 15px;
         display: flex; justify-content: space-between; align-items: center; 
-        font-size: 13px; font-weight: 600; flex-shrink: 0;
+        font-size: 14px; font-weight: 600;
+        flex-shrink: 0; /* Keeps toolbar visible */
     }
 
     .pdf-scroll-area {
+        background: #525659;
         flex: 1; /* Fill remaining space */
-        overflow-y: scroll; /* Force scrollbar */
-        -webkit-overflow-scrolling: touch; /* Momentum scrolling */
+        
+        /* SCROLLING ENABLED HERE */
+        overflow-y: scroll; 
+        -webkit-overflow-scrolling: touch;
         padding: 20px;
-        position: relative;
     }
 
     .doc-page {
-        width: 100%; max-width: 300px; 
-        background: white; border: 1px solid #ccc;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.3); 
-        padding: 30px; margin: 0 auto 20px auto; 
-        min-height: 400px; /* Ensure pages are tall enough to force scrolling */
+        background: white; width: 100%; max-width: 340px; 
+        margin: 0 auto 20px auto; 
+        padding: 30px; 
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        min-height: 500px; /* Ensure page is tall */
     }
 
     /* --- UI ELEMENTS --- */
     .btn-primary {
         background: var(--ford-blue); color: white; border: none;
-        padding: 14px; border-radius: 8px; font-weight: 700;
-        cursor: pointer; margin-top: 15px; width: 100%; font-size: 16px;
+        padding: 18px; border-radius: 8px; font-weight: 700;
+        cursor: pointer; margin-top: 20px; width: 100%; font-size: 18px;
     }
     .btn-success {
         background: var(--success); color: white; border: none;
-        padding: 14px; width: 100%; border-radius: 8px; font-weight: 700;
-        cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
-        font-size: 16px; margin-top: 15px;
+        padding: 18px; width: 100%; border-radius: 8px; font-weight: 700;
+        cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+        font-size: 18px; margin-top: 20px;
     }
-    #reader { width: 100%; height: 250px; background: black; border-radius: 8px; margin-bottom: 15px; }
+    
+    #reader { width: 100%; height: 300px; background: black; border-radius: 8px; margin-bottom: 20px; }
+    
     .asset-card {
-        width: 100%; border: 1px solid #ddd; border-left: 5px solid var(--success);
-        background: #f9fff9; padding: 15px; border-radius: 4px; text-align: left;
+        width: 100%; border: 1px solid #ddd; border-left: 6px solid var(--success);
+        background: #f9fff9; padding: 20px; border-radius: 6px; text-align: left;
     }
 
+    /* Text Sizing for readability */
+    p { line-height: 1.5; }
+    h2 { font-size: 22px; margin-bottom: 10px; }
+    h3 { font-size: 18px; margin-bottom: 10px; }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 </style>
 </head>
 <body>
@@ -110,68 +129,63 @@
     <div class="widget-header">Equipment Lookup</div>
 
     <div id="screen-idle" class="screen active">
-        <svg style="width:60px;height:60px;fill:#999;margin-bottom:15px;" viewBox="0 0 24 24"><path d="M3 5v4h2V5h4V3H5c-1.1 0-2 .9-2 2zm2 10H3v4c0 1.1.9 2 2 2h4v-2H5v-4zm14 4h-4v2h4c1.1 0 2-.9 2-2v-4h-2v4zm0-16h-4v2h4v4h2V5c0-1.1-.9-2-2-2z"/></svg>
-        <p style="color:#555; font-size:14px; text-align:center;">Scan equipment tag to view safety manuals.</p>
+        <svg style="width:80px;height:80px;fill:#999;margin-bottom:20px;" viewBox="0 0 24 24"><path d="M3 5v4h2V5h4V3H5c-1.1 0-2 .9-2 2zm2 10H3v4c0 1.1.9 2 2 2h4v-2H5v-4zm14 4h-4v2h4c1.1 0 2-.9 2-2v-4h-2v4zm0-16h-4v2h4v4h2V5c0-1.1-.9-2-2-2z"/></svg>
+        <p style="color:#555; font-size:16px; text-align:center; margin:0;">Scan equipment tag to view safety manuals.</p>
         <button class="btn-primary" onclick="goToCamera()">Start Scanner</button>
     </div>
 
     <div id="screen-camera" class="screen">
         <div id="reader"></div>
-        <button onclick="goToIdle()" style="background:#eee; border:none; padding:12px; width:100%; border-radius:8px; font-weight:600; color:#333;">Cancel</button>
+        <button onclick="goToIdle()" style="background:#eee; border:none; padding:15px; width:100%; border-radius:8px; font-weight:600; color:#333; font-size:16px;">Cancel</button>
     </div>
 
     <div id="screen-result" class="screen">
         <div class="asset-card">
-            <div style="background:#c8e6c9; color:#2e7d32; padding:3px 8px; border-radius:4px; font-size:11px; font-weight:700; text-transform:uppercase; display:inline-block; margin-bottom:8px;">✓ Manual Found</div>
-            <div style="font-size:18px; font-weight:800; color:#1a1a1a; margin-bottom:5px;" id="res-name">Loading...</div>
-            <div style="font-size:13px; color:#666; margin-bottom:5px;" id="res-id">ID: ...</div>
+            <div style="background:#c8e6c9; color:#2e7d32; padding:4px 8px; border-radius:4px; font-size:12px; font-weight:800; text-transform:uppercase; display:inline-block; margin-bottom:10px;">✓ Manual Found</div>
+            <div style="font-size:20px; font-weight:800; color:#1a1a1a; margin-bottom:6px;" id="res-name">Loading...</div>
+            <div style="font-size:14px; color:#666; margin-bottom:6px;" id="res-id">ID: ...</div>
         </div>
         <button class="btn-success" onclick="goToPDF()">
-            <svg style="width:20px;height:20px;fill:white" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+            <svg style="width:24px;height:24px;fill:white" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
             View Document
         </button>
-        <div style="margin-top:20px; text-align:center;">
-            <span style="font-size:14px; color:#003478; text-decoration:underline; cursor:pointer;" onclick="goToCamera()">Scan Next Item</span>
+        <div style="margin-top:25px; text-align:center;">
+            <span style="font-size:16px; color:#003478; text-decoration:underline; cursor:pointer;" onclick="goToCamera()">Scan Next Item</span>
         </div>
     </div>
 
-    <div id="screen-pdf" class="screen">
+    <div id="screen-pdf">
         <div class="pdf-toolbar">
             <span id="pdf-filename">Safety_Manual_v4.pdf</span>
             <span onclick="goToResult()" style="cursor:pointer; font-weight:bold; padding:8px;">✕ Close</span>
         </div>
         
-        <div class="pdf-scroll-area" id="pdf-scroll-box">
-            
+        <div class="pdf-scroll-area">
             <div class="doc-page">
                 <h2 style="margin-top:0; color:#d32f2f; border-bottom:2px solid #ddd; padding-bottom:10px;">DANGER / LOCKOUT</h2>
-                <p style="font-size:12px; font-weight:bold;">Equipment: Hydraulic Press Series A</p>
-                <p style="font-size:11px; color:#333; line-height:1.6;">
+                <p style="font-size:14px; font-weight:bold;">Equipment: Hydraulic Press Series A</p>
+                <p style="font-size:13px; color:#333; line-height:1.6;">
                     <strong>1. SHUTDOWN:</strong> Ensure all primary energy sources are disconnected before servicing.<br><br>
                     <strong>2. ISOLATION:</strong> Apply locks to the main breaker (Panel 4B).<br><br>
-                    <strong>3. VERIFICATION:</strong> Attempt to start the equipment to verify zero energy state.<br><br>
-                    <strong>4. DISSIPATION:</strong> Bleed all hydraulic pressure lines.
+                    <strong>3. VERIFICATION:</strong> Attempt to start the equipment to verify zero energy state.
                 </p>
-                <div style="background:#eee; height:120px; margin-top:15px; display:flex; align-items:center; justify-content:center; color:#999; font-size:10px;">[ DIAGRAM A-42 ]</div>
+                <div style="background:#eee; height:150px; margin-top:20px; display:flex; align-items:center; justify-content:center; color:#999; font-size:12px;">[ DIAGRAM A-42 ]</div>
             </div>
 
             <div class="doc-page">
                  <h3 style="margin-top:0;">Maintenance Log</h3>
-                 <p style="font-size:10px; color:#666;">Last Service: 10/12/2025 by J. Doe</p>
-                 <table style="width:100%; font-size:10px; margin-top:10px; border-collapse:collapse;">
-                     <tr style="background:#f0f0f0;"><td style="padding:5px;">Date</td><td style="padding:5px;">Check</td></tr>
-                     <tr><td style="padding:5px; border-bottom:1px solid #eee;">10/12</td><td style="padding:5px; border-bottom:1px solid #eee;">Oil Level OK</td></tr>
-                     <tr><td style="padding:5px; border-bottom:1px solid #eee;">09/01</td><td style="padding:5px; border-bottom:1px solid #eee;">Filter Replaced</td></tr>
-                     <tr><td style="padding:5px; border-bottom:1px solid #eee;">08/15</td><td style="padding:5px; border-bottom:1px solid #eee;">Safety Sensor Test</td></tr>
-                     <tr><td style="padding:5px; border-bottom:1px solid #eee;">07/20</td><td style="padding:5px; border-bottom:1px solid #eee;">Annual Inspection</td></tr>
-                     <tr><td style="padding:5px; border-bottom:1px solid #eee;">06/05</td><td style="padding:5px; border-bottom:1px solid #eee;">Hydraulic Fluid Top-up</td></tr>
+                 <p style="font-size:12px; color:#666;">Last Service: 10/12/2025 by J. Doe</p>
+                 <table style="width:100%; font-size:12px; margin-top:15px; border-collapse:collapse;">
+                     <tr style="background:#f0f0f0;"><td style="padding:8px;">Date</td><td style="padding:8px;">Check</td></tr>
+                     <tr><td style="padding:8px; border-bottom:1px solid #eee;">10/12</td><td style="padding:8px; border-bottom:1px solid #eee;">Oil Level OK</td></tr>
+                     <tr><td style="padding:8px; border-bottom:1px solid #eee;">09/01</td><td style="padding:8px; border-bottom:1px solid #eee;">Filter Replaced</td></tr>
+                     <tr><td style="padding:8px; border-bottom:1px solid #eee;">08/15</td><td style="padding:8px; border-bottom:1px solid #eee;">Safety Sensor Test</td></tr>
                  </table>
-                 <div style="margin-top:20px; font-size:10px; color:#666; font-style:italic;">
-                     Note: Ensure all seals are checked during monthly maintenance. Replace O-rings if any signs of wear are visible.
+                 <div style="margin-top:20px; font-size:12px; color:#666; font-style:italic;">
+                     Note: Ensure all seals are checked during monthly maintenance.
                  </div>
             </div>
-
-            <div style="color:#ccc; font-size:10px; text-align:center; padding-bottom:40px;">End of Document</div>
+            <div style="color:#ccc; font-size:12px; text-align:center; padding-bottom:40px;">End of Document</div>
         </div>
     </div>
 
@@ -183,25 +197,13 @@
     function goToIdle() { switchScreen('screen-idle'); }
     function goToCamera() { switchScreen('screen-camera'); startScanner(); }
     function goToResult() { switchScreen('screen-result'); }
-    
     function goToPDF() { 
-        // 1. Reset Scroll Position
-        document.getElementById('pdf-scroll-box').scrollTop = 0;
-        
-        // 2. Lock Body Scroll (The "Lock" Fix)
-        document.body.style.overflow = 'hidden'; 
-        
-        switchScreen('screen-pdf');
+        document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+        document.getElementById('screen-pdf').classList.add('active'); 
     }
 
     function switchScreen(id) {
         if(id !== 'screen-camera' && html5QrCode) { try { html5QrCode.stop(); } catch(e) {} }
-        
-        // Unlock body scroll if we are LEAVING the PDF screen
-        if(id !== 'screen-pdf') {
-            document.body.style.overflow = 'hidden'; // Keep hidden generally to prevent bounce
-        }
-
         document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
         document.getElementById(id).classList.add('active');
     }
