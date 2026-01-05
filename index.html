@@ -89,9 +89,9 @@
                 <div style="font-size:12px; color:#555;">Last Maint: Oct 12, 2025</div>
             </div>
 
-            <a href="#" id="res-link" target="_blank" class="btn-action">
+            <a href="#" id="res-link" class="btn-action">
                 <svg style="width:20px;height:20px;fill:white" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
-                Open PDF Manual
+                Open Manual
             </a>
             
             <div style="margin-top:15px; font-size:13px; color:#003478; text-decoration:underline; cursor:pointer;" onclick="startScanner()">Scan Next Item</div>
@@ -103,11 +103,10 @@
 <script>
     let html5QrCode;
 
-    // --- 1. MOCK DATABASE (This simulates your real backend) ---
+    // --- 1. MOCK DATABASE (UPDATED FOR TESTING) ---
     const assetDatabase = {
-        "FORD-A": { name: "Hydraulic Press #4", url: "https://www.osha.gov/sites/default/files/publications/osha3120.pdf" },
-        "FORD-B": { name: "Conveyor Motor XJ", url: "https://www.ford.com" },
-        "default": { name: "Generic Asset 001", url: "https://www.ford.com" }
+        "FORD-A": { name: "Hydraulic Press #4", url: "https://www.google.com" },
+        "default": { name: "Generic Asset 001", url: "https://www.google.com" }
     };
 
     function startScanner() {
@@ -121,16 +120,21 @@
 
     function onScanSuccess(decodedText) {
         html5QrCode.stop().then(() => {
-            // --- 2. THE "LOGIC" (Lookup the asset) ---
-            // In a real app, this would be an API call. 
-            // For the demo, we check if the mock database has the code, otherwise use default.
-            
             const asset = assetDatabase[decodedText] || assetDatabase["default"];
             
-            // --- 3. UI UPDATE (Drive the Value) ---
+            // UI UPDATE
             document.getElementById('res-name').innerText = asset.name;
             document.getElementById('res-id').innerText = "Asset ID: " + decodedText;
-            document.getElementById('res-link').href = asset.url; // Sets the specific manual link
+            
+            // LINK UPDATE - Standard Href
+            const linkBtn = document.getElementById('res-link');
+            linkBtn.href = asset.url;
+            
+            // Backup click handler (Force navigation if Href fails in webview)
+            linkBtn.onclick = function(e) {
+               // If normal click fails, this JS forces it
+               window.location.href = asset.url;
+            };
 
             document.getElementById('state-camera').style.display = 'none';
             document.getElementById('state-result').style.display = 'block';
