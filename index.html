@@ -7,84 +7,81 @@
 <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
 <style>
-    /* --- RESET --- */
+    /* --- RESET & BASICS --- */
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     :root { --ford-blue: #003478; --bg-gray: #f4f5f8; --success: #2e7d32; }
     
-    body {
+    html, body {
+        height: 100%; /* Critical for locking */
+        margin: 0; padding: 0;
         font-family: "Ford Antenna", -apple-system, BlinkMacSystemFont, Roboto, sans-serif; 
         background: var(--bg-gray);
         display: flex; flex-direction: column; align-items: center;
-        padding: 20px; margin: 0; min-height: 100vh;
+        overflow: hidden; /* Default lock to prevent bounce */
     }
 
     .scanner-widget {
         background: white; width: 100%; max-width: 360px;
+        height: 100%; max-height: 600px; /* Allow it to fill screen if needed */
         border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        overflow: hidden; display: flex; flex-direction: column;
-        height: 500px; /* Fixed Height */
-        position: relative;
+        overflow: hidden; 
+        position: relative; /* Anchor for absolute children */
+        display: flex; flex-direction: column;
+        margin-top: 20px;
     }
 
     .widget-header {
         background: var(--ford-blue); color: white; padding: 15px;
         font-weight: 700; text-transform: uppercase; text-align: center; letter-spacing: 0.5px;
-        height: 50px; /* Fixed header height */
+        height: 50px; flex-shrink: 0; z-index: 10;
         display: flex; align-items: center; justify-content: center;
     }
 
-    /* --- SCREENS --- */
+    /* --- SCREENS (Absolute Positioning Fix) --- */
+    /* By making screens absolute, they don't push the container size */
     .screen {
-        display: none; width: 100%; height: 100%;
-        flex-direction: column;
-        animation: fadeIn 0.3s ease;
+        position: absolute; top: 50px; left: 0; right: 0; bottom: 0;
+        background: white;
+        display: none; 
+        flex-direction: column; 
+        overflow-y: auto; /* Allow individual screens to scroll if needed */
+        -webkit-overflow-scrolling: touch;
+        padding: 20px;
     }
     .screen.active { display: flex; }
 
-    /* Centered Layouts (Idle/Result) */
-    #screen-idle, #screen-result, #screen-camera {
-        align-items: center; justify-content: center; padding: 20px;
-    }
+    /* Center alignment for non-scrolling screens */
+    #screen-idle, #screen-result, #screen-camera { align-items: center; justify-content: center; }
 
-    /* --- FAKE PDF LAYOUT (The Fix) --- */
+    /* --- FAKE PDF LAYOUT (The Nuclear Fix) --- */
     #screen-pdf {
+        padding: 0; /* Remove padding so toolbar hits edges */
         background: #525659;
-        display: none; /* Hidden by default */
-        flex-direction: column;
-        height: 450px; /* 500px widget - 50px header = 450px remaining */
+        z-index: 20; /* Sit on top of everything */
+        display: none; flex-direction: column;
     }
     #screen-pdf.active { display: flex; }
 
     .pdf-toolbar {
-        width: 100%; height: 40px; 
-        background: #323639; color: white; padding: 0 15px;
+        height: 44px; background: #323639; color: white; padding: 0 15px;
         display: flex; justify-content: space-between; align-items: center; 
-        font-size: 12px; font-weight: 600;
-        flex-shrink: 0;
+        font-size: 13px; font-weight: 600; flex-shrink: 0;
     }
 
-    .pdf-content {
-        width: 100%;
-        /* CALCULATED HEIGHT: 450px space - 40px toolbar = 410px scroll area */
-        height: 410px; 
-        
-        background: #525659;
+    .pdf-scroll-area {
+        flex: 1; /* Fill remaining space */
+        overflow-y: scroll; /* Force scrollbar */
+        -webkit-overflow-scrolling: touch; /* Momentum scrolling */
         padding: 20px;
-        
-        /* SCROLL TRAP FIXES */
-        overflow-y: auto; 
-        -webkit-overflow-scrolling: touch; 
-        overscroll-behavior: contain; /* Prevents app from stealing scroll */
-        touch-action: pan-y; /* Enables vertical drag */
-        
-        display: block; /* Simpler than flex for scrolling */
+        position: relative;
     }
 
     .doc-page {
         width: 100%; max-width: 300px; 
         background: white; border: 1px solid #ccc;
         box-shadow: 0 4px 10px rgba(0,0,0,0.3); 
-        padding: 25px; margin: 0 auto 20px auto; /* Centered */
+        padding: 30px; margin: 0 auto 20px auto; 
+        min-height: 400px; /* Ensure pages are tall enough to force scrolling */
     }
 
     /* --- UI ELEMENTS --- */
@@ -99,15 +96,12 @@
         cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
         font-size: 16px; margin-top: 15px;
     }
-
     #reader { width: 100%; height: 250px; background: black; border-radius: 8px; margin-bottom: 15px; }
-
     .asset-card {
         width: 100%; border: 1px solid #ddd; border-left: 5px solid var(--success);
         background: #f9fff9; padding: 15px; border-radius: 4px; text-align: left;
     }
 
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 </style>
 </head>
 <body>
@@ -141,12 +135,13 @@
         </div>
     </div>
 
-    <div id="screen-pdf">
+    <div id="screen-pdf" class="screen">
         <div class="pdf-toolbar">
             <span id="pdf-filename">Safety_Manual_v4.pdf</span>
-            <span onclick="goToResult()" style="cursor:pointer; font-weight:bold; padding:5px;">✕ Close</span>
+            <span onclick="goToResult()" style="cursor:pointer; font-weight:bold; padding:8px;">✕ Close</span>
         </div>
-        <div class="pdf-content">
+        
+        <div class="pdf-scroll-area" id="pdf-scroll-box">
             
             <div class="doc-page">
                 <h2 style="margin-top:0; color:#d32f2f; border-bottom:2px solid #ddd; padding-bottom:10px;">DANGER / LOCKOUT</h2>
@@ -154,9 +149,10 @@
                 <p style="font-size:11px; color:#333; line-height:1.6;">
                     <strong>1. SHUTDOWN:</strong> Ensure all primary energy sources are disconnected before servicing.<br><br>
                     <strong>2. ISOLATION:</strong> Apply locks to the main breaker (Panel 4B).<br><br>
-                    <strong>3. VERIFICATION:</strong> Attempt to start the equipment to verify zero energy state.
+                    <strong>3. VERIFICATION:</strong> Attempt to start the equipment to verify zero energy state.<br><br>
+                    <strong>4. DISSIPATION:</strong> Bleed all hydraulic pressure lines.
                 </p>
-                <div style="background:#eee; height:80px; margin-top:15px; display:flex; align-items:center; justify-content:center; color:#999; font-size:10px;">[ DIAGRAM A-42 ]</div>
+                <div style="background:#eee; height:120px; margin-top:15px; display:flex; align-items:center; justify-content:center; color:#999; font-size:10px;">[ DIAGRAM A-42 ]</div>
             </div>
 
             <div class="doc-page">
@@ -166,10 +162,16 @@
                      <tr style="background:#f0f0f0;"><td style="padding:5px;">Date</td><td style="padding:5px;">Check</td></tr>
                      <tr><td style="padding:5px; border-bottom:1px solid #eee;">10/12</td><td style="padding:5px; border-bottom:1px solid #eee;">Oil Level OK</td></tr>
                      <tr><td style="padding:5px; border-bottom:1px solid #eee;">09/01</td><td style="padding:5px; border-bottom:1px solid #eee;">Filter Replaced</td></tr>
+                     <tr><td style="padding:5px; border-bottom:1px solid #eee;">08/15</td><td style="padding:5px; border-bottom:1px solid #eee;">Safety Sensor Test</td></tr>
+                     <tr><td style="padding:5px; border-bottom:1px solid #eee;">07/20</td><td style="padding:5px; border-bottom:1px solid #eee;">Annual Inspection</td></tr>
+                     <tr><td style="padding:5px; border-bottom:1px solid #eee;">06/05</td><td style="padding:5px; border-bottom:1px solid #eee;">Hydraulic Fluid Top-up</td></tr>
                  </table>
+                 <div style="margin-top:20px; font-size:10px; color:#666; font-style:italic;">
+                     Note: Ensure all seals are checked during monthly maintenance. Replace O-rings if any signs of wear are visible.
+                 </div>
             </div>
 
-            <div style="color:#ccc; font-size:10px; text-align:center; padding-bottom:10px;">End of Document</div>
+            <div style="color:#ccc; font-size:10px; text-align:center; padding-bottom:40px;">End of Document</div>
         </div>
     </div>
 
@@ -181,22 +183,25 @@
     function goToIdle() { switchScreen('screen-idle'); }
     function goToCamera() { switchScreen('screen-camera'); startScanner(); }
     function goToResult() { switchScreen('screen-result'); }
+    
     function goToPDF() { 
-        // Force scroll to top when opening PDF
-        const content = document.querySelector('.pdf-content');
-        if(content) content.scrollTop = 0;
+        // 1. Reset Scroll Position
+        document.getElementById('pdf-scroll-box').scrollTop = 0;
         
-        // Manual toggle because PDF screen is special
-        document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
-        document.getElementById('screen-pdf').style.display = 'flex'; // Explicit display set
+        // 2. Lock Body Scroll (The "Lock" Fix)
+        document.body.style.overflow = 'hidden'; 
+        
+        switchScreen('screen-pdf');
     }
 
     function switchScreen(id) {
         if(id !== 'screen-camera' && html5QrCode) { try { html5QrCode.stop(); } catch(e) {} }
         
-        // Hide PDF specifically since it has custom display logic
-        document.getElementById('screen-pdf').style.display = 'none';
-        
+        // Unlock body scroll if we are LEAVING the PDF screen
+        if(id !== 'screen-pdf') {
+            document.body.style.overflow = 'hidden'; // Keep hidden generally to prevent bounce
+        }
+
         document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
         document.getElementById(id).classList.add('active');
     }
