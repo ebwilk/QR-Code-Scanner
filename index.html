@@ -7,7 +7,7 @@
 <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
 <style>
-    /* --- CRITICAL LAYOUT FIXES --- */
+    /* --- LAYOUT FIXES --- */
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     
     :root { --ford-blue: #003478; --bg-gray: #f4f5f8; --success: #2e7d32; }
@@ -40,24 +40,28 @@
         font-size: 16px;
     }
 
+    /* Green Open Button */
     .btn-action {
         background: var(--success); color: white; border: none;
         padding: 16px; width: 100%; border-radius: 8px; font-weight: 700;
         cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
         text-decoration: none; font-size: 16px; margin-top: 15px;
     }
+    .btn-action:active { opacity: 0.9; transform: scale(0.98); }
     
     /* Result Card Styles */
     .asset-card {
-        width: 100%; /* Ensures it fits container */
+        width: 100%; 
         border: 1px solid #ddd; border-left: 5px solid var(--success);
         background: #f9fff9; padding: 15px; border-radius: 4px;
         text-align: left;
     }
 
+    /* Hide these states by default */
     #state-camera { display: none; width: 100%; flex-direction: column; }
     #reader { width: 100%; height: 250px; background: black; border-radius: 8px; margin-bottom: 15px; }
     #state-result { display: none; width: 100%; animation: slideUp 0.3s ease; }
+    
     @keyframes slideUp { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 </style>
 </head>
@@ -86,10 +90,10 @@
                 <div style="font-size:13px; color:#666; margin-bottom:5px;" id="res-id">ID: ...</div>
             </div>
 
-            <button id="res-link-btn" class="btn-action" onclick="forceOpenLink()">
+            <a href="#" id="res-link-btn" class="btn-action" target="_blank">
                 <svg style="width:20px;height:20px;fill:white" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
                 Open Manual
-            </button>
+            </a>
             
             <div style="margin-top:20px; text-align:center;">
                 <span style="font-size:14px; color:#003478; text-decoration:underline; cursor:pointer;" onclick="startScanner()">Scan Next Item</span>
@@ -101,12 +105,12 @@
 
 <script>
     let html5QrCode;
-    let currentUrl = "";
 
-    // MOCK DATABASE
+    // --- MOCK DATABASE ---
+    // Note: I switched Google to Wikipedia because Wikipedia allows framing (Safe for testing)
     const assetDatabase = {
-        "FORD-A": { name: "Hydraulic Press #4", url: "https://www.google.com" },
-        "default": { name: "Generic Asset 001", url: "https://www.google.com" }
+        "FORD-A": { name: "Hydraulic Press #4", url: "https://en.wikipedia.org/wiki/Hydraulic_press" },
+        "default": { name: "Generic Asset 001", url: "https://en.wikipedia.org/wiki/User_guide" }
     };
 
     function startScanner() {
@@ -122,30 +126,18 @@
         html5QrCode.stop().then(() => {
             const asset = assetDatabase[decodedText] || assetDatabase["default"];
             
-            // Set Data
+            // 1. Update Text
             document.getElementById('res-name').innerText = asset.name;
             document.getElementById('res-id').innerText = "Asset ID: " + decodedText;
             
-            // SAVE THE URL FOR THE BUTTON
-            currentUrl = asset.url;
-
-            // Show Result
+            // 2. Update Link (The Safe Way)
+            const btn = document.getElementById('res-link-btn');
+            btn.href = asset.url; 
+            
+            // 3. Show Result
             document.getElementById('state-camera').style.display = 'none';
             document.getElementById('state-result').style.display = 'block';
         });
-    }
-
-    // --- FORCE OPEN LOGIC ---
-    function forceOpenLink() {
-        if(!currentUrl) return;
-        
-        // Method 1: Standard Window Open (Try First)
-        var win = window.open(currentUrl, '_blank');
-        
-        // Method 2: If popup blocked, try redirecting current window
-        if (!win || win.closed || typeof win.closed == 'undefined') {
-            window.location.href = currentUrl;
-        }
     }
 
     function reset() {
