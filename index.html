@@ -22,7 +22,7 @@
         background: white; width: 100%; max-width: 360px;
         border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         overflow: hidden; display: flex; flex-direction: column;
-        height: 500px; /* Taller fixed height to fit the "PDF" */
+        height: 500px; /* Fixed height is important */
         position: relative;
     }
 
@@ -32,13 +32,20 @@
         flex-shrink: 0;
     }
 
-    /* --- COMMON LAYOUT --- */
+    /* --- SCREEN LOGIC --- */
     .screen {
-        padding: 20px; flex: 1; display: none; /* All hidden by default */
-        flex-direction: column; align-items: center; justify-content: center;
-        animation: fadeIn 0.3s ease;
+        flex: 1; /* Fills remaining space */
+        display: none; 
+        flex-direction: column; 
+        overflow: hidden; /* Contains the scroll inside this screen */
+        height: 100%; /* Forces it to respect parent height */
     }
     .screen.active { display: flex; }
+
+    /* For non-scrolling screens (Idle/Result), center content */
+    #screen-idle, #screen-result {
+        align-items: center; justify-content: center; padding: 20px;
+    }
 
     /* --- BUTTONS --- */
     .btn-primary {
@@ -54,6 +61,7 @@
     }
 
     /* --- CAMERA --- */
+    #screen-camera { align-items: center; justify-content: center; padding: 20px; }
     #reader { width: 100%; height: 250px; background: black; border-radius: 8px; margin-bottom: 15px; }
 
     /* --- RESULT CARD --- */
@@ -62,26 +70,38 @@
         background: #f9fff9; padding: 15px; border-radius: 4px; text-align: left;
     }
 
-    /* --- FAKE PDF VIEWER --- */
-    #screen-pdf { padding: 0; background: #525659; justify-content: flex-start; }
-    
-    .pdf-toolbar {
-        width: 100%; background: #323639; color: white; padding: 10px 15px;
-        display: flex; justify-content: space-between; align-items: center; font-size: 12px;
+    /* --- FAKE PDF VIEWER (Fixed Scrolling) --- */
+    #screen-pdf { 
+        background: #525659; 
+        /* NO padding here, allows toolbar to touch edges */
     }
     
-    /* Using a reliable image to simulate a document */
+    .pdf-toolbar {
+        width: 100%; background: #323639; color: white; padding: 12px 15px;
+        display: flex; justify-content: space-between; align-items: center; font-size: 12px;
+        flex-shrink: 0; /* Prevents toolbar from shrinking */
+    }
+    
     .pdf-content {
-        width: 100%; flex: 1; background: white; overflow-y: auto; padding: 20px;
+        width: 100%; 
+        flex: 1; /* Takes all remaining space */
+        background: #525659;
+        
+        /* SCROLLING MAGIC */
+        overflow-y: auto; 
+        -webkit-overflow-scrolling: touch; /* Smooth scroll on iOS */
+        min-height: 0; /* Crucial fix for flexbox scrolling */
+        
+        padding: 20px;
         display: flex; flex-direction: column; align-items: center;
     }
     
     .doc-page {
-        width: 100%; max-width: 300px; border: 1px solid #ddd; 
-        box-shadow: 0 2px 8px rgba(0,0,0,0.2); padding: 20px; margin-bottom: 20px;
+        width: 100%; max-width: 300px; border: 1px solid #ddd; background: white;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3); padding: 25px; margin-bottom: 20px;
+        flex-shrink: 0; /* Prevents pages from squishing */
     }
 
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 </style>
 </head>
 <body>
@@ -123,6 +143,7 @@
             <span onclick="goToResult()" style="cursor:pointer; font-weight:bold;">✕ Close</span>
         </div>
         <div class="pdf-content">
+            
             <div class="doc-page">
                 <h2 style="margin-top:0; color:#d32f2f; border-bottom:2px solid #ddd; padding-bottom:10px;">DANGER / LOCKOUT</h2>
                 <p style="font-size:12px; font-weight:bold;">Equipment: Hydraulic Press Series A</p>
@@ -133,11 +154,19 @@
                 </p>
                 <div style="background:#eee; height:80px; margin-top:15px; display:flex; align-items:center; justify-content:center; color:#999; font-size:10px;">[ DIAGRAM A-42 ]</div>
             </div>
+
             <div class="doc-page">
                  <h3 style="margin-top:0;">Maintenance Log</h3>
                  <p style="font-size:10px; color:#666;">Last Service: 10/12/2025 by J. Doe</p>
-                 <p style="font-size:10px; color:#666;">Status: Operational</p>
+                 <table style="width:100%; font-size:10px; margin-top:10px; border-collapse:collapse;">
+                     <tr style="background:#f0f0f0;"><td style="padding:5px;">Date</td><td style="padding:5px;">Check</td></tr>
+                     <tr><td style="padding:5px; border-bottom:1px solid #eee;">10/12</td><td style="padding:5px; border-bottom:1px solid #eee;">Oil Level OK</td></tr>
+                     <tr><td style="padding:5px; border-bottom:1px solid #eee;">09/01</td><td style="padding:5px; border-bottom:1px solid #eee;">Filter Replaced</td></tr>
+                     <tr><td style="padding:5px; border-bottom:1px solid #eee;">08/15</td><td style="padding:5px; border-bottom:1px solid #eee;">Safety Sensor Test</td></tr>
+                 </table>
             </div>
+
+            <div style="color:#aaa; font-size:10px; padding-bottom:20px;">End of Document</div>
         </div>
     </div>
 
@@ -155,11 +184,9 @@
     function goToPDF() { switchScreen('screen-pdf'); }
 
     function switchScreen(id) {
-        // Stop camera if leaving camera screen
         if(id !== 'screen-camera' && html5QrCode) {
             try { html5QrCode.stop(); } catch(e) {}
         }
-        
         document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
         document.getElementById(id).classList.add('active');
     }
@@ -170,12 +197,9 @@
     }
 
     function onScanSuccess(decodedText) {
-        // Stop Camera
         html5QrCode.stop().then(() => {
-            // Update Data with simulated result
             document.getElementById('res-name').innerText = "Hydraulic Press #4";
             document.getElementById('res-id').innerText = "ID: " + decodedText;
-            
             goToResult();
         });
     }
