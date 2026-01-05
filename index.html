@@ -7,7 +7,7 @@
 <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
 <style>
-    /* --- CONFIG & RESET --- */
+    /* --- RESET --- */
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     :root { --ford-blue: #003478; --bg-gray: #f4f5f8; --success: #2e7d32; }
     
@@ -22,86 +22,92 @@
         background: white; width: 100%; max-width: 360px;
         border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         overflow: hidden; display: flex; flex-direction: column;
-        height: 500px; /* Fixed height is important */
+        height: 500px; /* Fixed Height */
         position: relative;
     }
 
     .widget-header {
         background: var(--ford-blue); color: white; padding: 15px;
         font-weight: 700; text-transform: uppercase; text-align: center; letter-spacing: 0.5px;
-        flex-shrink: 0;
+        height: 50px; /* Fixed header height */
+        display: flex; align-items: center; justify-content: center;
     }
 
-    /* --- SCREEN LOGIC --- */
+    /* --- SCREENS --- */
     .screen {
-        flex: 1; /* Fills remaining space */
-        display: none; 
-        flex-direction: column; 
-        overflow: hidden; /* Contains the scroll inside this screen */
-        height: 100%; /* Forces it to respect parent height */
+        display: none; width: 100%; height: 100%;
+        flex-direction: column;
+        animation: fadeIn 0.3s ease;
     }
     .screen.active { display: flex; }
 
-    /* For non-scrolling screens (Idle/Result), center content */
-    #screen-idle, #screen-result {
+    /* Centered Layouts (Idle/Result) */
+    #screen-idle, #screen-result, #screen-camera {
         align-items: center; justify-content: center; padding: 20px;
     }
 
-    /* --- BUTTONS --- */
+    /* --- FAKE PDF LAYOUT (The Fix) --- */
+    #screen-pdf {
+        background: #525659;
+        display: none; /* Hidden by default */
+        flex-direction: column;
+        height: 450px; /* 500px widget - 50px header = 450px remaining */
+    }
+    #screen-pdf.active { display: flex; }
+
+    .pdf-toolbar {
+        width: 100%; height: 40px; 
+        background: #323639; color: white; padding: 0 15px;
+        display: flex; justify-content: space-between; align-items: center; 
+        font-size: 12px; font-weight: 600;
+        flex-shrink: 0;
+    }
+
+    .pdf-content {
+        width: 100%;
+        /* CALCULATED HEIGHT: 450px space - 40px toolbar = 410px scroll area */
+        height: 410px; 
+        
+        background: #525659;
+        padding: 20px;
+        
+        /* SCROLL TRAP FIXES */
+        overflow-y: auto; 
+        -webkit-overflow-scrolling: touch; 
+        overscroll-behavior: contain; /* Prevents app from stealing scroll */
+        touch-action: pan-y; /* Enables vertical drag */
+        
+        display: block; /* Simpler than flex for scrolling */
+    }
+
+    .doc-page {
+        width: 100%; max-width: 300px; 
+        background: white; border: 1px solid #ccc;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3); 
+        padding: 25px; margin: 0 auto 20px auto; /* Centered */
+    }
+
+    /* --- UI ELEMENTS --- */
     .btn-primary {
         background: var(--ford-blue); color: white; border: none;
-        padding: 16px; border-radius: 8px; font-weight: 700;
-        cursor: pointer; margin-top: 20px; width: 100%; font-size: 16px;
+        padding: 14px; border-radius: 8px; font-weight: 700;
+        cursor: pointer; margin-top: 15px; width: 100%; font-size: 16px;
     }
     .btn-success {
         background: var(--success); color: white; border: none;
-        padding: 16px; width: 100%; border-radius: 8px; font-weight: 700;
-        cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+        padding: 14px; width: 100%; border-radius: 8px; font-weight: 700;
+        cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
         font-size: 16px; margin-top: 15px;
     }
 
-    /* --- CAMERA --- */
-    #screen-camera { align-items: center; justify-content: center; padding: 20px; }
     #reader { width: 100%; height: 250px; background: black; border-radius: 8px; margin-bottom: 15px; }
 
-    /* --- RESULT CARD --- */
     .asset-card {
         width: 100%; border: 1px solid #ddd; border-left: 5px solid var(--success);
         background: #f9fff9; padding: 15px; border-radius: 4px; text-align: left;
     }
 
-    /* --- FAKE PDF VIEWER (Fixed Scrolling) --- */
-    #screen-pdf { 
-        background: #525659; 
-        /* NO padding here, allows toolbar to touch edges */
-    }
-    
-    .pdf-toolbar {
-        width: 100%; background: #323639; color: white; padding: 12px 15px;
-        display: flex; justify-content: space-between; align-items: center; font-size: 12px;
-        flex-shrink: 0; /* Prevents toolbar from shrinking */
-    }
-    
-    .pdf-content {
-        width: 100%; 
-        flex: 1; /* Takes all remaining space */
-        background: #525659;
-        
-        /* SCROLLING MAGIC */
-        overflow-y: auto; 
-        -webkit-overflow-scrolling: touch; /* Smooth scroll on iOS */
-        min-height: 0; /* Crucial fix for flexbox scrolling */
-        
-        padding: 20px;
-        display: flex; flex-direction: column; align-items: center;
-    }
-    
-    .doc-page {
-        width: 100%; max-width: 300px; border: 1px solid #ddd; background: white;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.3); padding: 25px; margin-bottom: 20px;
-        flex-shrink: 0; /* Prevents pages from squishing */
-    }
-
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 </style>
 </head>
 <body>
@@ -126,21 +132,19 @@
             <div style="font-size:18px; font-weight:800; color:#1a1a1a; margin-bottom:5px;" id="res-name">Loading...</div>
             <div style="font-size:13px; color:#666; margin-bottom:5px;" id="res-id">ID: ...</div>
         </div>
-
         <button class="btn-success" onclick="goToPDF()">
             <svg style="width:20px;height:20px;fill:white" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
             View Document
         </button>
-        
         <div style="margin-top:20px; text-align:center;">
             <span style="font-size:14px; color:#003478; text-decoration:underline; cursor:pointer;" onclick="goToCamera()">Scan Next Item</span>
         </div>
     </div>
 
-    <div id="screen-pdf" class="screen">
+    <div id="screen-pdf">
         <div class="pdf-toolbar">
             <span id="pdf-filename">Safety_Manual_v4.pdf</span>
-            <span onclick="goToResult()" style="cursor:pointer; font-weight:bold;">✕ Close</span>
+            <span onclick="goToResult()" style="cursor:pointer; font-weight:bold; padding:5px;">✕ Close</span>
         </div>
         <div class="pdf-content">
             
@@ -162,11 +166,10 @@
                      <tr style="background:#f0f0f0;"><td style="padding:5px;">Date</td><td style="padding:5px;">Check</td></tr>
                      <tr><td style="padding:5px; border-bottom:1px solid #eee;">10/12</td><td style="padding:5px; border-bottom:1px solid #eee;">Oil Level OK</td></tr>
                      <tr><td style="padding:5px; border-bottom:1px solid #eee;">09/01</td><td style="padding:5px; border-bottom:1px solid #eee;">Filter Replaced</td></tr>
-                     <tr><td style="padding:5px; border-bottom:1px solid #eee;">08/15</td><td style="padding:5px; border-bottom:1px solid #eee;">Safety Sensor Test</td></tr>
                  </table>
             </div>
 
-            <div style="color:#aaa; font-size:10px; padding-bottom:20px;">End of Document</div>
+            <div style="color:#ccc; font-size:10px; text-align:center; padding-bottom:10px;">End of Document</div>
         </div>
     </div>
 
@@ -176,17 +179,24 @@
     let html5QrCode;
 
     function goToIdle() { switchScreen('screen-idle'); }
-    function goToCamera() {
-        switchScreen('screen-camera');
-        startScanner();
-    }
+    function goToCamera() { switchScreen('screen-camera'); startScanner(); }
     function goToResult() { switchScreen('screen-result'); }
-    function goToPDF() { switchScreen('screen-pdf'); }
+    function goToPDF() { 
+        // Force scroll to top when opening PDF
+        const content = document.querySelector('.pdf-content');
+        if(content) content.scrollTop = 0;
+        
+        // Manual toggle because PDF screen is special
+        document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+        document.getElementById('screen-pdf').style.display = 'flex'; // Explicit display set
+    }
 
     function switchScreen(id) {
-        if(id !== 'screen-camera' && html5QrCode) {
-            try { html5QrCode.stop(); } catch(e) {}
-        }
+        if(id !== 'screen-camera' && html5QrCode) { try { html5QrCode.stop(); } catch(e) {} }
+        
+        // Hide PDF specifically since it has custom display logic
+        document.getElementById('screen-pdf').style.display = 'none';
+        
         document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
         document.getElementById(id).classList.add('active');
     }
