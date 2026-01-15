@@ -14,17 +14,15 @@
         --ford-blue: #003478; 
         --bg-gray: #f4f5f8; 
         --success: #2e7d32; 
-        --widget-height: 700px; /* <--- THE MAGIC NUMBER */
+        --widget-height: 700px; 
     }
     
     body {
         font-family: "Ford Antenna", -apple-system, BlinkMacSystemFont, Roboto, sans-serif; 
-        background: transparent; /* Transparent background to blend in */
+        background: transparent; 
         margin: 0; padding: 0;
-        
-        /* FORCE THE APP TO RESPECT THIS HEIGHT */
         min-height: var(--widget-height);
-        overflow: hidden; /* Hide outer scrollbars */
+        overflow: hidden; 
         display: flex; flex-direction: column;
     }
 
@@ -32,8 +30,7 @@
     .scanner-widget {
         background: white; 
         width: 100%; 
-        height: var(--widget-height); /* Hardcoded height forces iframe to grow */
-        
+        height: var(--widget-height); 
         display: flex; flex-direction: column;
         overflow: hidden; 
         position: relative;
@@ -51,25 +48,24 @@
         display: none; 
         flex-direction: column; 
         width: 100%;
-        flex: 1; /* Fill the rest of the 700px */
+        flex: 1; 
         padding: 20px;
         animation: fadeIn 0.3s ease;
     }
     .screen.active { display: flex; }
 
-    /* Center content for Idle/Result screens */
     #screen-idle, #screen-result, #screen-camera { 
         align-items: center; 
         justify-content: center; 
     }
 
-    /* --- PDF VIEWER (Scroll Fixed) --- */
+    /* --- PDF VIEWER --- */
     #screen-pdf {
         padding: 0; 
         background: #525659;
         display: none; 
         flex-direction: column;
-        height: 100%; /* Fills the widget */
+        height: 100%; 
     }
     #screen-pdf.active { display: flex; }
 
@@ -83,11 +79,9 @@
     .pdf-scroll-area {
         background: #525659;
         flex: 1; 
-        /* SCROLLING ENABLED HERE */
         overflow-y: auto; 
         -webkit-overflow-scrolling: touch;
         padding: 20px;
-        /* Fix for scroll trapping */
         overscroll-behavior: contain;
     }
 
@@ -96,7 +90,7 @@
         margin: 0 auto 20px auto; 
         padding: 30px; 
         box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-        min-height: 800px; /* Tall pages to force scrolling */
+        min-height: 800px; 
     }
 
     /* --- UI ELEMENTS --- */
@@ -177,7 +171,52 @@
                     <strong>3. VERIFICATION:</strong> Attempt to start the equipment to verify zero energy state.<br><br>
                     <strong>4. DISSIPATION:</strong> Bleed all hydraulic pressure lines.
                 </p>
-                <div style="background:#eee; height:200px; margin-top:20px; display:flex; align-items:center; justify-content:center; color:#999; font-size:12px;">[ DIAGRAM A-42 ]</div>
+                
+                <!-- DIAGRAM SECTION -->
+                <div style="background:#fff; border:1px solid #ddd; margin-top:20px; padding:10px;">
+                    <div style="background:#eee; height:220px; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden;">
+                        <!-- Technical Diagram SVG -->
+                        <svg width="300" height="200" viewBox="0 0 300 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Background Grid -->
+                            <defs>
+                                <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                                    <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#ddd" stroke-width="0.5"/>
+                                </pattern>
+                            </defs>
+                            <rect width="100%" height="100%" fill="url(#grid)" />
+                            
+                            <!-- Main Machine Body -->
+                            <rect x="80" y="40" width="140" height="140" stroke="#333" stroke-width="2" fill="#e0e0e0"/>
+                            <rect x="100" y="60" width="100" height="80" stroke="#333" stroke-width="1" fill="#fff"/>
+                            
+                            <!-- Hydraulic Ram -->
+                            <rect x="135" y="40" width="30" height="40" fill="#666"/>
+                            <path d="M 130 80 L 170 80 L 150 100 Z" fill="#333"/>
+                            
+                            <!-- Pipes -->
+                            <path d="M 80 150 L 40 150 L 40 100" stroke="#555" stroke-width="3" fill="none"/>
+                            
+                            <!-- Lockout Point 1 (Breaker) -->
+                            <circle cx="240" cy="60" r="15" fill="#fff" stroke="#d32f2f" stroke-width="2"/>
+                            <text x="240" y="65" text-anchor="middle" font-size="12" font-weight="bold" fill="#d32f2f">E1</text>
+                            <line x1="220" y1="60" x2="225" y2="60" stroke="#d32f2f" stroke-width="1"/>
+                            
+                            <!-- Lockout Point 2 (Valve) -->
+                            <circle cx="40" cy="100" r="15" fill="#fff" stroke="#d32f2f" stroke-width="2"/>
+                            <text x="40" y="105" text-anchor="middle" font-size="12" font-weight="bold" fill="#d32f2f">H1</text>
+                            
+                            <!-- Labels -->
+                            <rect x="230" y="80" width="60" height="20" fill="white" stroke="#333" stroke-width="1"/>
+                            <text x="260" y="94" text-anchor="middle" font-size="8" fill="#333">PANEL 4B</text>
+                            
+                            <text x="150" y="190" text-anchor="middle" font-size="10" fill="#666" font-family="monospace">FIG 1.1 - ISOLATION POINTS</text>
+                        </svg>
+                    </div>
+                    <p style="font-size:12px; color:#666; margin:10px 0 0 0; text-align:center;">
+                        <span style="color:#d32f2f; font-weight:bold;">H1:</span> Hydraulic Release Valve &nbsp;|&nbsp; 
+                        <span style="color:#d32f2f; font-weight:bold;">E1:</span> Main Breaker Panel
+                    </p>
+                </div>
             </div>
 
             <div class="doc-page">
